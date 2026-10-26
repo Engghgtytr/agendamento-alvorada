@@ -1,0 +1,16 @@
+# Barbearia Alvorada (fictícia)
+
+> Agendamento online de uma barbearia FICTÍCIA, feito como projeto de portfólio da Penchel.Dev. Os horários marcados aqui não valem de verdade e não há endereço nem telefone reais.
+
+## O que o site faz
+
+- Página da barbearia com serviços, preços, equipe e horário de funcionamento.
+- Agendamento em 4 passos: serviço, barbeiro (ou qualquer um disponível), dia e horário livre, nome e WhatsApp.
+- Link para ver e cancelar o horário até 2 horas antes, sem login.
+- Painel do dono com agenda do dia, status dos atendimentos, bloqueios, serviços e expediente.
+
+## Como funciona
+
+- Os horários livres são calculados pelo expediente, pelos bloqueios e pelos agendamentos.
+- O banco de dados (PostgreSQL no Supabase) impede dois agendamentos no mesmo horário com uma exclusion constraint.
+- Coleta só nome e WhatsApp; os dados pessoais são apagados 30 dias depois do horário.

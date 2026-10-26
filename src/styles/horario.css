@@ -1,0 +1,216 @@
+.booking {
+  width: min(560px, 100% - 32px);
+  padding: 32px 0 0;
+}
+
+.booking__title {
+  font-size: var(--step-3);
+}
+
+.booking__title:focus {
+  outline: none;
+}
+
+/* O cartão do horário: o "comprovante" */
+.ticket {
+  position: relative;
+  padding: 28px 24px 24px;
+  border: 1px solid var(--linha);
+  border-radius: var(--radius-m);
+  background: var(--branco);
+}
+
+.ticket--loading {
+  display: grid;
+}
+
+.ticket__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ticket__status {
+  margin-top: 4px;
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--azulejo);
+}
+
+.ticket--cancelled .ticket__status {
+  color: var(--erro);
+}
+
+.check {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--azulejo);
+}
+
+.check svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: var(--branco);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ticket__when {
+  display: grid;
+  margin-top: 24px;
+}
+
+.ticket__when span {
+  font-weight: 600;
+  color: var(--tinta-2);
+}
+
+.ticket__when span::first-letter {
+  text-transform: uppercase;
+}
+
+.ticket__when strong {
+  font-stretch: 62%;
+  font-weight: 850;
+  font-size: clamp(3.5rem, 2.6rem + 4vw, 5rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ticket--cancelled .ticket__when strong {
+  color: var(--tinta-2);
+  text-decoration: line-through;
+  text-decoration-thickness: 3px;
+}
+
+.ticket__info {
+  margin-top: 20px;
+  border-top: 1px dashed var(--linha);
+}
+
+.ticket__info > div {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--linha);
+}
+
+.ticket__info > div:last-child {
+  border-bottom: 0;
+}
+
+.ticket__info dt {
+  font-size: var(--step--1);
+  color: var(--tinta-2);
+  padding-top: 2px;
+}
+
+.ticket__info dd {
+  font-weight: 600;
+}
+
+.actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.keep {
+  margin-top: 10px;
+  padding: 16px;
+  border-radius: var(--radius-m);
+  background: var(--azulejo-claro);
+  font-size: var(--step--1);
+}
+
+.keep__row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.keep__url {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--linha);
+  border-radius: var(--radius-s);
+  background: var(--branco);
+  font-size: 1rem;
+  color: var(--tinta-2);
+}
+
+.actions__cancel {
+  justify-self: start;
+  margin-top: 8px;
+  min-height: 44px;
+  color: var(--erro);
+}
+
+/* O momento marcante: só quando o horário acabou de ser marcado.
+   Cartão sobe, o check aparece crescendo e os botões entram um a um. */
+.ticket--new {
+  animation: ticket-in 400ms var(--ease-out) both;
+}
+
+.ticket--new .check {
+  animation: check-in 300ms var(--ease-out) 150ms both;
+}
+
+.ticket--new .check svg {
+  animation: tick-in 250ms var(--ease-out) 330ms both;
+}
+
+.ticket--new + .actions > * {
+  animation: fade-up 300ms var(--ease-out) both;
+}
+
+.ticket--new + .actions > :nth-child(1) { animation-delay: 420ms; }
+.ticket--new + .actions > :nth-child(2) { animation-delay: 480ms; }
+.ticket--new + .actions > :nth-child(3) { animation-delay: 540ms; }
+.ticket--new + .actions > :nth-child(4) { animation-delay: 600ms; }
+
+@keyframes ticket-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+@keyframes check-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@keyframes tick-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4) rotate(-12deg);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticket--new,
+  .ticket--new .check,
+  .ticket--new .check svg,
+  .ticket--new + .actions > * {
+    animation: none;
+  }
+}

@@ -1,0 +1,518 @@
+/* Painel do dono: ferramenta de trabalho, usada o dia inteiro. Quase nada se mexe. */
+
+.admin {
+  min-height: 100dvh;
+}
+
+.admin--center {
+  display: grid;
+  place-items: center;
+  padding: 32px 16px;
+}
+
+.admin__loading {
+  padding: 48px 16px;
+  color: var(--tinta-2);
+}
+
+.login {
+  display: grid;
+  gap: 16px;
+  width: min(420px, 100%);
+  padding: 32px 24px;
+  border: 1px solid var(--linha);
+  border-radius: var(--radius-m);
+  background: var(--branco);
+}
+
+.login h1 {
+  font-size: var(--step-3);
+}
+
+.login .link {
+  justify-self: start;
+}
+
+/* Barra do topo com as abas */
+.admin-bar {
+  border-bottom: 1px solid var(--linha);
+  background: var(--branco);
+}
+
+.admin-bar .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+  min-height: 64px;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  overflow-x: auto;
+}
+
+.admin-tabs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: var(--radius-s);
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--tinta-2);
+  white-space: nowrap;
+}
+
+.admin-tabs a:hover {
+  background: var(--porcelana);
+  color: var(--tinta);
+}
+
+.admin-tabs a[aria-current='page'] {
+  background: var(--azulejo-claro);
+  color: var(--azulejo-3);
+}
+
+.admin-bar__out {
+  min-height: 44px;
+}
+
+@media (max-width: 640px) {
+  .admin-bar .logo span {
+    display: none;
+  }
+}
+
+.admin-demo {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-s);
+  background: #fff6dc;
+  color: #5c4500;
+  font-size: var(--step--1);
+}
+
+.admin-main {
+  padding: 24px 0 64px;
+}
+
+.admin-main h1 {
+  font-size: var(--step-3);
+}
+
+.admin-lead {
+  max-width: 64ch;
+  margin: 8px 0 20px;
+}
+
+/* Cabeçalho da agenda */
+.agenda-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+}
+
+.agenda-head h1 {
+  margin-right: auto;
+}
+
+.day-nav {
+  display: flex;
+  gap: 6px;
+}
+
+.btn--icon {
+  width: 48px;
+  padding: 0;
+}
+
+.btn--flip svg {
+  transform: scaleX(-1);
+}
+
+.agenda-day {
+  margin-top: 16px;
+  font-stretch: 75%;
+  font-weight: 800;
+  font-size: var(--step-2);
+}
+
+.agenda-day::first-letter {
+  text-transform: uppercase;
+}
+
+.agenda-sum {
+  margin: 2px 0 16px;
+  color: var(--tinta-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Linha do tempo: uma coluna por barbeiro. No celular, rola de lado. */
+.timeline-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--linha);
+  border-radius: var(--radius-m);
+  background: var(--branco);
+}
+
+.timeline {
+  min-width: calc(56px + var(--cols) * 128px);
+}
+
+.tl-head,
+.tl-body {
+  display: grid;
+  grid-template-columns: 56px repeat(var(--cols), minmax(128px, 1fr));
+}
+
+.tl-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  border-bottom: 1px solid var(--linha);
+  background: var(--branco);
+}
+
+.tl-head span {
+  padding: 12px 10px;
+  font-weight: 800;
+  border-left: 1px solid var(--linha);
+}
+
+.tl-head span:first-child {
+  border-left: 0;
+}
+
+.tl-body {
+  position: relative;
+  /* Uma linha fina a cada hora */
+  background-image: linear-gradient(var(--linha) 1px, transparent 1px);
+  background-size: 100% var(--hour);
+}
+
+.tl-hours {
+  position: relative;
+}
+
+.tl-hours span {
+  position: absolute;
+  right: 8px;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: var(--tinta-2);
+  font-variant-numeric: tabular-nums;
+  background: var(--branco);
+  padding: 0 2px;
+}
+
+.tl-hours span:first-child {
+  transform: none;
+}
+
+.tl-hours span:last-child {
+  transform: translateY(-100%);
+}
+
+/* Fora do expediente: cinza listrado. Dentro: branco. */
+.tl-col {
+  position: relative;
+  border-left: 1px solid var(--linha);
+  background: repeating-linear-gradient(135deg, #eef2f1 0 6px, #f7f9f8 6px 12px);
+}
+
+.tl-open {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background-image: linear-gradient(var(--linha) 1px, transparent 1px);
+  background-size: 100% var(--hour);
+  background-color: var(--branco);
+}
+
+.tl-appt {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  z-index: 1;
+  display: grid;
+  align-content: start;
+  gap: 0 6px;
+  padding: 4px 8px;
+  overflow: hidden;
+  border: 1px solid #a9cbc5;
+  border-radius: var(--radius-s);
+  background: var(--azulejo-claro);
+  color: var(--azulejo-3);
+  font-size: 0.8125rem;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, transform 120ms var(--ease-out);
+}
+
+.tl-appt:hover {
+  border-color: var(--azulejo);
+}
+
+.tl-appt:active {
+  transform: scale(0.98);
+}
+
+.tl-appt span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tl-appt small {
+  font-size: 0.75rem;
+  color: var(--tinta-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Atendimento curto (até ~30 min): tudo numa linha, sem o nome do serviço */
+.tl-appt--short {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-block: 0;
+  white-space: nowrap;
+}
+
+.tl-appt--short small {
+  display: none;
+}
+
+.tl-appt--done {
+  border-color: var(--linha);
+  background: #f1f4f3;
+  color: var(--tinta-2);
+}
+
+.tl-appt--no_show {
+  border-color: #e7a59d;
+  background: var(--erro-claro);
+  color: #7a1a12;
+}
+
+.tl-off {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 4px 4px 4px 8px;
+  border: 1px dashed #9aa6a4;
+  border-radius: var(--radius-s);
+  background: repeating-linear-gradient(135deg, #e3e8e7 0 6px, #edf1f0 6px 12px);
+  color: var(--tinta-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  overflow: hidden;
+}
+
+.tl-off button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.tl-off button:hover {
+  background: rgb(0 0 0 / 0.08);
+}
+
+.tl-off .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Linha do "agora": anda com translateY, uma vez por minuto, sem transição */
+.tl-now {
+  position: absolute;
+  left: 56px;
+  right: 0;
+  top: 0;
+  z-index: 2;
+  height: 2px;
+  background: var(--erro);
+  pointer-events: none;
+}
+
+.tl-now span {
+  position: absolute;
+  left: 4px;
+  top: -9px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--erro);
+  color: var(--branco);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+/* Diálogos do painel */
+.summary--plain {
+  margin-top: 4px;
+}
+
+.modal .summary > div {
+  grid-template-columns: 84px 1fr;
+}
+
+.modal .note {
+  margin-top: 12px;
+}
+
+.modal .form {
+  margin-top: 12px;
+}
+
+.modal__actions--wrap .btn {
+  flex: 1 1 auto;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.field select {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 12px;
+  border: 1.5px solid var(--linha);
+  border-radius: var(--radius-s);
+  background: var(--branco);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.field select:focus-visible {
+  outline: none;
+  border-color: var(--azulejo);
+  box-shadow: 0 0 0 3px rgb(29 92 88 / 0.2);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--azulejo);
+}
+
+/* Serviços */
+.svc-list {
+  border-top: 1px solid var(--linha);
+}
+
+.svc {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--linha);
+}
+
+.svc h2 {
+  font-family: var(--font);
+  font-stretch: 100%;
+  font-size: var(--step-1);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.svc .muted {
+  font-variant-numeric: tabular-nums;
+}
+
+.svc--off h2 {
+  color: var(--tinta-2);
+}
+
+/* Expediente */
+.hours-card {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid var(--linha);
+  border-radius: var(--radius-m);
+  background: var(--branco);
+}
+
+.hours-card h2 {
+  font-size: var(--step-2);
+}
+
+.hours-scroll {
+  position: relative; /* prende o texto de leitor de tela (sr-only) dentro da rolagem */
+  overflow-x: auto;
+  margin: 12px 0 16px;
+}
+
+.hours-table {
+  border-collapse: collapse;
+  min-width: 560px;
+}
+
+.hours-table th,
+.hours-table td {
+  padding: 6px 8px 6px 0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.hours-table thead th {
+  font-size: var(--step--1);
+  color: var(--tinta-2);
+}
+
+.hours-table tbody th {
+  width: 84px;
+  font-weight: 600;
+}
+
+.hours-table input {
+  min-height: 44px;
+  padding: 0 8px;
+  border: 1.5px solid var(--linha);
+  border-radius: var(--radius-s);
+  background: var(--branco);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hours-table input[aria-invalid='true'] {
+  border-color: var(--erro);
+}
+
+.hours-err {
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--erro);
+}
