@@ -2,11 +2,13 @@
 // de verdade (horário duplicado, limite por WhatsApp, prazo para cancelar).
 // Serve para qualquer pessoa testar o site, inclusive o painel do dono, sem configurar nada.
 
-import { barbers, services as defaultServices, shop, workingHours as defaultHours } from '../data/demo-shop.js';
+import * as barbearia from '../data/demo-shop.js';
+import * as petshop from '../data/demo-pet.js';
+import { SIZES, sizePrice } from '../utils/labels.js';
 import { availableSlots, bookingDays, isActive, isOpenDay, overlaps, pickBarber } from '../utils/slots.js';
 import { dateKey, fromMinutes, timeLabel, toInstant, toMinutes, weekdayOf } from '../utils/time.js';
 
-const STORAGE_KEY = 'alvorada:demo:v1';
+const STORAGE_KEYS = { barbearia: 'alvorada:demo:v1', pet: 'alvorada:demo-pet:v1' };
 
 export class BookingError extends Error {
   constructor(code, message) {
@@ -35,7 +37,7 @@ function seededRandom(seedText) {
 
 // Clientes de exemplo ocupando parte da agenda, para a grade parecer real.
 // Não têm nome nem telefone: no painel aparecem como "Cliente de exemplo".
-function seedDay(date) {
+function seedDay(date, { barbers, services: defaultServices, shop, workingHours: defaultHours }) {
   const rand = seededRandom(`alvorada:${date}`);
   const weekday = weekdayOf(date);
   const result = [];
@@ -84,7 +86,10 @@ function browserStorage() {
 
 const emptyData = () => ({ v: 1, appointments: [], timeOff: [], seedStatus: {}, services: null, workingHours: null, nextId: 1 });
 
-export function createDemoApi({ now = () => new Date(), storage = browserStorage(), delayMs = 300 } = {}) {
+export function createDemoApi({ now = () => new Date(), storage = browserStorage(), delayMs = 300, loja = 'barbearia' } = {}) {
+  const demoData = loja === 'pet' ? petshop : barbearia;
+  const { barbers, services: defaultServices, shop, workingHours: defaultHours } = demoData;
+  const STORAGE_KEY = STORAGE_KEYS[loja] ?? STORAGE_KEYS.barbearia;
   let memory = emptyData();
   const seedCache = new Map();
 
@@ -115,7 +120,7 @@ export function createDemoApi({ now = () => new Date(), storage = browserStorage
 
   // Agendamentos de exemplo, com as mudanças de status que o dono fez no painel.
   const seedFor = (date) => {
-    if (!seedCache.has(date)) seedCache.set(date, seedDay(date));
+    if (!seedCache.has(date)) seedCache.set(date, seedDay(date, demoData));
     const status = load().seedStatus;
     return seedCache.get(date).map((a) => (status[a.id] ? { ...a, status: status[a.id] } : a));
   };
@@ -170,6 +175,24 @@ export function createDemoApi({ now = () => new Date(), storage = browserStorage
         if (!appt) throw new BookingError('not_found', 'Agendamento não encontrado.');
         appt.status = status;
       }
+      save(data);
+    },
+
+    async markReminded(id) {
+      await wait();
+      const data = load();
+      const appt = data.appointments.find((a) => a.id === id);
+      if (!appt) throw new BookingError('not_found', 'Agendamento não encontrado.');
+      appt.remindedAt = now().toISOString();
+      save(data);
+    },
+
+    async setConfirmed(id) {
+      await wait();
+      const data = load();
+      const appt = data.appointments.find((a) => a.id === id);
+      if (!appt) throw new BookingError('not_found', 'Agendamento não encontrado.');
+      appt.confirmedAt ??= now().toISOString();
       save(data);
     },
 
@@ -237,7 +260,7 @@ export function createDemoApi({ now = () => new Date(), storage = browserStorage
       return slotsFor(params);
     },
 
-    async book({ date, time, serviceId, barberId, name, phone, website = '' }) {
+    async book({ date, time, serviceId, barberId, name, phone, website = '', pet = null }) {
       await wait();
       // Campo escondido preenchido = robô. Responde como se tivesse dado certo,
       // para ele não insistir, mas não grava nada.
@@ -245,7 +268,17 @@ export function createDemoApi({ now = () => new Date(), storage = browserStorage
 
       const service = findService(serviceId);
       if (!service || (barberId !== 'any' && !findBarber(barberId))) {
-        throw new BookingError('invalid', 'Escolha o serviço e o barbeiro de novo.');
+        throw new BookingError('invalid', 'Escolha o serviço e o profissional de novo.');
+      }
+      // Pet shop: nome e porte obrigatórios (mesma regra do banco, 004_pet_lembrete.sql)
+      let petData = {};
+      if (shop.petMode) {
+        const petName = String(pet?.name ?? '').trim().replace(/\s+/g, ' ');
+        const petBreed = String(pet?.breed ?? '').trim().replace(/\s+/g, ' ');
+        if (!petName || petName.length > 40) throw new BookingError('invalid', 'Confira o nome do pet.');
+        if (!(pet?.size in SIZES)) throw new BookingError('invalid', 'Escolha o porte do pet.');
+        if (petBreed.length > 40) throw new BookingError('invalid', 'Confira a raça do pet.');
+        petData = { petName, petSize: pet.size, petBreed: petBreed || null };
       }
 
       const data = load();
@@ -277,8 +310,9 @@ export function createDemoApi({ now = () => new Date(), storage = browserStorage
         barberId: chosen,
         serviceId,
         serviceName: service.name,
-        priceCents: service.priceCents,
+        priceCents: sizePrice(service, petData.petSize),
         durationMin: service.durationMin,
+        ...petData,
         date,
         time: timeLabel(slot.startsAt, shop.timezone),
         startsAt: slot.startsAt.toISOString(),
@@ -299,6 +333,19 @@ export function createDemoApi({ now = () => new Date(), storage = browserStorage
       return { appointment, barber: findBarber(appointment.barberId), shop };
     },
 
+    async confirm(code) {
+      await wait();
+      const data = load();
+      const appointment = data.appointments.find((a) => a.code === code);
+      if (!appointment) throw new BookingError('not_found', 'Não encontramos esse agendamento.');
+      if (appointment.status !== 'booked' || new Date(appointment.startsAt) <= now()) {
+        throw new BookingError('invalid', 'Esse horário não está mais marcado.');
+      }
+      appointment.confirmedAt ??= now().toISOString();
+      save(data);
+      return appointment;
+    },
+
     async cancel(code) {
       await wait();
       const data = load();
@@ -308,7 +355,7 @@ export function createDemoApi({ now = () => new Date(), storage = browserStorage
       if (appointment.status !== 'booked') throw new BookingError('invalid', 'Esse horário já passou.');
       const minutesLeft = (new Date(appointment.startsAt) - now()) / 60_000;
       if (minutesLeft < shop.cancelLimitMin) {
-        throw new BookingError('too_late', 'Faltam menos de 2 horas. Para cancelar agora, fale com a barbearia.');
+        throw new BookingError('too_late', `Faltam menos de 2 horas. Para cancelar agora, fale com ${shop.petMode ? 'o pet shop' : 'a barbearia'}.`);
       }
       appointment.status = 'cancelled';
       save(data);

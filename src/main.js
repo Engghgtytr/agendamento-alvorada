@@ -1,3 +1,4 @@
+import { api } from './services/api.js';
 import './styles/base.css';
 import './styles/home.css';
 import './styles/agendar.css';
@@ -81,5 +82,19 @@ function router() {
   cleanup = route.render(app) ?? null;
 }
 
-window.addEventListener('hashchange', router);
+// O site nasceu como "Barbearia Alvorada". Para outra loja (ex.: pet shop em ?loja=pet ou um
+// cliente no Supabase), troca o nome no topo, no rodapé e no título da aba.
+function brand() {
+  api.getShop().then(({ shop }) => {
+    if (shop.name === 'Barbearia Alvorada') return;
+    for (const el of document.querySelectorAll('.logo span')) el.textContent = shop.name;
+    for (const el of document.querySelectorAll('.logo')) el.setAttribute('aria-label', `${shop.name}, página inicial`);
+    const foot = document.querySelector('.site-footer strong');
+    if (foot) foot.textContent = `${shop.petMode ? 'O' : 'A'} ${shop.name} é fictíci${shop.petMode ? 'o' : 'a'}.`;
+    document.title = document.title.replace('Barbearia Alvorada', shop.name);
+  }).catch(() => {});
+}
+
+window.addEventListener('hashchange', () => { router(); brand(); });
 router();
+brand();

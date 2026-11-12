@@ -5,6 +5,7 @@ import { formatPhone } from '../utils/customer.js';
 import { esc, formatDuration, formatMoney } from '../utils/format.js';
 import { buildIcs } from '../utils/ics.js';
 import { formatDay } from '../utils/time.js';
+import { labels, SIZES } from '../utils/labels.js';
 import { bookingMessage, whatsappLink } from '../utils/whatsapp.js';
 
 const STATUS = {
@@ -63,7 +64,8 @@ export function renderHorario(app, code, { isNew = false } = {}) {
     const active = a.status === 'booked' && new Date(a.startsAt) > new Date();
     const cancelled = a.status === 'cancelled';
     const title = cancelled ? 'Horário cancelado' : celebrate ? 'Horário marcado' : 'Seu horário';
-    const pageLink = `${location.origin}${location.pathname}#/horario/${code}`;
+    const pageLink = `${location.origin}${location.pathname}${location.search}#/horario/${code}`;
+    const L = labels(shop);
 
     main.innerHTML = `
       <article class="ticket${celebrate ? ' ticket--new' : ''}${cancelled ? ' ticket--cancelled' : ''}" aria-labelledby="ticket-title">
@@ -81,8 +83,9 @@ export function renderHorario(app, code, { isNew = false } = {}) {
         <p class="ticket__when"><span>${esc(formatDay(a.date))}</span><strong>${esc(a.time)}</strong></p>
         <dl class="ticket__info">
           <div><dt>Serviço</dt><dd>${esc(a.serviceName)} · ${formatDuration(a.durationMin)}</dd></div>
-          <div><dt>Barbeiro</dt><dd>${esc(barber?.name ?? '')}</dd></div>
-          <div><dt>Valor</dt><dd>${formatMoney(a.priceCents)}, pago na barbearia</dd></div>
+          ${a.petName ? `<div><dt>Pet</dt><dd>${esc(a.petName)} · porte ${esc((SIZES[a.petSize] ?? '').toLowerCase())}${a.petBreed ? ` · ${esc(a.petBreed)}` : ''}</dd></div>` : ''}
+          <div><dt>${L.staff}</dt><dd>${esc(barber?.name ?? '')}</dd></div>
+          <div><dt>Valor</dt><dd>${formatMoney(a.priceCents)}, pago ${L.place}</dd></div>
           <div><dt>Nome</dt><dd>${esc(a.name)} · ${esc(formatPhone(a.phone))}</dd></div>
         </dl>
       </article>
@@ -91,8 +94,11 @@ export function renderHorario(app, code, { isNew = false } = {}) {
         active
           ? `
         <div class="actions">
-          <button class="btn btn--primary" type="button" id="ics">${icons.calendar}Adicionar à agenda do celular</button>
-          <button class="btn btn--outline" type="button" id="whats">${icons.message}Avisar a barbearia no WhatsApp</button>
+          ${a.confirmedAt
+            ? '<p class="confirmed">✓ Presença confirmada. Obrigado!</p>'
+            : '<button class="btn btn--primary" type="button" id="confirm">Confirmar presença</button>'}
+          <button class="btn btn--outline" type="button" id="ics">${icons.calendar}Adicionar à agenda do celular</button>
+          <button class="btn btn--outline" type="button" id="whats">${icons.message}Avisar ${L.to} no WhatsApp</button>
           <div class="keep">
             <p>Guarde este link para ver ou cancelar o horário:</p>
             <div class="keep__row">
@@ -116,8 +122,8 @@ export function renderHorario(app, code, { isNew = false } = {}) {
       </dialog>
 
       <dialog class="modal" id="whats-dialog" aria-labelledby="whats-title">
-        <h2 id="whats-title">Mensagem para a barbearia</h2>
-        <p class="muted">A barbearia é fictícia, então o WhatsApp não abre. Numa barbearia de verdade, esta mensagem iria pronta:</p>
+        <h2 id="whats-title">Mensagem para ${L.to}</h2>
+        <p class="muted">${L.to.charAt(0).toUpperCase() + L.to.slice(1)} é fictíci${shop.petMode ? 'o' : 'a'}, então o WhatsApp não abre. Num lugar de verdade, esta mensagem iria pronta:</p>
         <pre id="whats-text"></pre>
         <div class="modal__actions">
           <button class="btn btn--primary" type="button" id="whats-close" autofocus>Entendi</button>
@@ -129,6 +135,25 @@ export function renderHorario(app, code, { isNew = false } = {}) {
   }
 
   function bind(a, barber, shop) {
+    let confirming = false;
+    main.querySelector('#confirm')?.addEventListener('click', async (e) => {
+      if (confirming) return; // trava contra clique duplo
+      confirming = true;
+      const button = e.currentTarget;
+      button.disabled = true;
+      button.innerHTML = '<span class="spinner" aria-hidden="true"></span>Confirmando…';
+      try {
+        await api.confirm(code);
+        toast('Presença confirmada.');
+        show(await api.getBooking(code), false);
+      } catch (err) {
+        confirming = false;
+        button.disabled = false;
+        button.textContent = 'Confirmar presença';
+        toast(err.code === 'invalid' ? err.message : 'Não deu para confirmar agora. Tente de novo.');
+      }
+    });
+
     main.querySelector('#ics')?.addEventListener('click', () => {
       const ics = buildIcs({
         uid: `${a.id}@alvorada`,

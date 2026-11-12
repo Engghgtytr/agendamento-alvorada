@@ -5,6 +5,7 @@ import { validateName, validatePhone, NAME_MAX } from '../utils/customer.js';
 import { esc, formatDuration, formatMoney, prefersReducedMotion } from '../utils/format.js';
 import { groupByPeriod } from '../utils/slots.js';
 import { dayOfMonth, formatDay, weekdayShort } from '../utils/time.js';
+import { labels, priceText, SIZES, sizePrice } from '../utils/labels.js';
 
 const TOTAL = 4;
 const PERIODS = [
@@ -122,7 +123,7 @@ export function renderAgendar(app) {
               <span class="option__title">${esc(s.name)}</span>
               <span class="option__desc">${esc(s.description)}</span>
             </span>
-            <span class="option__meta"><span>${formatDuration(s.durationMin)}</span><strong>${formatMoney(s.priceCents)}</strong></span>
+            <span class="option__meta"><span>${formatDuration(s.durationMin)}</span><strong>${esc(priceText(s))}</strong></span>
           </label>`,
           )
           .join('')}
@@ -144,7 +145,7 @@ export function renderAgendar(app) {
     el.step.innerHTML = `
       <h1 tabindex="-1">Com quem?</h1>
       <fieldset class="options">
-        <legend class="sr-only">Barbeiro</legend>
+        <legend class="sr-only">${labels(data.shop).staff}</legend>
         ${option('any', 'Qualquer um disponível', 'Mostra mais horários. Quem estiver livre atende você.', '*')}
         ${data.barbers.map((b) => option(b.id, b.name, b.specialty, esc(b.name.charAt(0)))).join('')}
       </fieldset>`;
@@ -279,17 +280,37 @@ export function renderAgendar(app) {
   // Passo 4: dados e confirmação
   function viewForm() {
     const s = service();
+    const L = labels(data.shop);
+    const pet = data.shop.petMode;
     el.step.innerHTML = `
       <h1 tabindex="-1">Seus dados</h1>
       <dl class="summary">
         <div><dt>Serviço</dt><dd>${esc(s.name)} <span class="muted">· ${formatDuration(s.durationMin)}</span></dd></div>
-        <div><dt>Barbeiro</dt><dd>${esc(barberLabel())}</dd></div>
+        <div><dt>${L.staff}</dt><dd>${esc(barberLabel())}</dd></div>
         <div><dt>Quando</dt><dd>${esc(formatDay(state.date))} às ${esc(state.time)}</dd></div>
-        <div><dt>Valor</dt><dd>${formatMoney(s.priceCents)} <span class="muted">· pago na barbearia</span></dd></div>
+        <div><dt>Valor</dt><dd><span id="valor">${s.sizePrices ? 'Escolha o porte do pet' : formatMoney(s.priceCents)}</span> <span class="muted">· pago ${L.place}</span></dd></div>
       </dl>
 
       <form class="form" id="form" novalidate>
         <p class="alert" id="form-error" role="alert" hidden></p>
+        ${pet ? `
+        <div class="field">
+          <label for="pet-name">Nome do pet</label>
+          <input id="pet-name" name="pet-name" maxlength="40" autocomplete="off" aria-describedby="pet-name-error" />
+          <p class="field__error" id="pet-name-error"></p>
+        </div>
+        <fieldset class="field pet-sizes">
+          <legend>Porte</legend>
+          <div class="pet-sizes__row">
+            ${Object.entries(SIZES).map(([k, label]) => `
+              <label class="pet-size"><input type="radio" name="pet-size" value="${k}" /><span>${label}${s.sizePrices ? `<small>${formatMoney(sizePrice(s, k))}</small>` : ''}</span></label>`).join('')}
+          </div>
+          <p class="field__error" id="pet-size-error"></p>
+        </fieldset>
+        <div class="field">
+          <label for="pet-breed">Raça <span class="muted">(opcional)</span></label>
+          <input id="pet-breed" name="pet-breed" maxlength="40" autocomplete="off" />
+        </div>` : ''}
         <div class="field">
           <label for="name">Seu nome</label>
           <input id="name" name="name" autocomplete="name" maxlength="${NAME_MAX}" value="${esc(state.name ?? '')}" aria-describedby="name-error" />
@@ -298,7 +319,7 @@ export function renderAgendar(app) {
         <div class="field">
           <label for="phone">WhatsApp</label>
           <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(11) 91234-5678" value="${esc(state.phone ?? '')}" aria-describedby="phone-hint phone-error" />
-          <p class="field__hint" id="phone-hint">Para a barbearia falar com você se precisar mudar algo.</p>
+          <p class="field__hint" id="phone-hint">Para ${L.to} falar com você se precisar mudar algo.</p>
           <p class="field__error" id="phone-error"></p>
         </div>
         <div class="hp" aria-hidden="true">
@@ -307,7 +328,7 @@ export function renderAgendar(app) {
         </div>
 
         <p class="form__privacy muted">Usamos seu nome e WhatsApp só para este horário e apagamos 30 dias depois. <a class="link" href="#/privacidade">Privacidade</a></p>
-        ${isDemo ? '<p class="note">Modo demonstração: o horário fica salvo só neste navegador e a barbearia é fictícia.</p>' : ''}
+        ${isDemo ? `<p class="note">Modo demonstração: o horário fica salvo só neste navegador e ${L.to} é fictíci${pet ? 'o' : 'a'}.</p>` : ''}
 
         <button class="btn btn--primary btn--block" type="submit" id="submit">Confirmar agendamento</button>
       </form>`;
@@ -332,7 +353,18 @@ export function renderAgendar(app) {
     const phone = validatePhone(phoneInput.value);
     showFieldError(nameInput, name.error);
     showFieldError(phoneInput, phone.error);
-    const firstInvalid = [name.error && nameInput, phone.error && phoneInput].find(Boolean);
+    // Pet shop: nome e porte do pet
+    let pet = null;
+    let petInvalid = null;
+    if (data.shop.petMode) {
+      const petInput = form.querySelector('#pet-name');
+      const size = form.querySelector('input[name="pet-size"]:checked')?.value ?? null;
+      pet = { name: petInput.value.trim(), size, breed: form.querySelector('#pet-breed').value.trim() };
+      showFieldError(petInput, pet.name ? null : 'Informe o nome do pet.');
+      form.querySelector('#pet-size-error').textContent = size ? '' : 'Escolha o porte.';
+      petInvalid = !pet.name ? petInput : !size ? form.querySelector('input[name="pet-size"]') : null;
+    }
+    const firstInvalid = [petInvalid, name.error && nameInput, phone.error && phoneInput].find(Boolean);
     if (firstInvalid) {
       firstInvalid.focus();
       return;
@@ -352,6 +384,7 @@ export function renderAgendar(app) {
         name: name.value,
         phone: phone.value,
         website: form.querySelector('#website').value,
+        pet,
       });
       clearWizard();
       location.hash = `#/horario/${code}?novo`;
@@ -394,6 +427,12 @@ export function renderAgendar(app) {
   el.step.addEventListener('change', (e) => {
     changed = true;
     const { name, value } = e.target;
+    // Porte escolhido: mostra o preço daquele porte no resumo
+    if (name === 'pet-size') {
+      el.step.querySelector('#valor').textContent = formatMoney(sizePrice(service(), value));
+      el.step.querySelector('#pet-size-error').textContent = '';
+      return;
+    }
     if (name === 'service') {
       if (state.serviceId !== value) state.time = null;
       state.serviceId = value;
@@ -414,6 +453,7 @@ export function renderAgendar(app) {
   });
 
   el.step.addEventListener('input', (e) => {
+    if (e.target.id === 'pet-name' && e.target.getAttribute('aria-invalid') === 'true') showFieldError(e.target, null);
     if (e.target.id === 'name' || e.target.id === 'phone') {
       state[e.target.id] = e.target.value;
       save();

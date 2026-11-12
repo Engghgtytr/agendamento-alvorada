@@ -2,6 +2,7 @@ import { siteFooter, siteHeader, icons } from '../components/layout.js';
 import { api } from '../services/api.js';
 import { saveWizard } from '../services/wizard-state.js';
 import { esc, formatDuration, formatMoney } from '../utils/format.js';
+import { priceText } from '../utils/labels.js';
 import { dateKey, formatDay, fromMinutes, toMinutes, addDays } from '../utils/time.js';
 
 const WEEKDAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
@@ -42,8 +43,8 @@ export function renderHome(app) {
       <section class="hero">
         <div class="wrap hero__grid">
           <div class="hero__text">
-            <h1>Barbearia Alvorada</h1>
-            <p class="hero__lead">Corte e barba de terça a sábado. Escolha o horário aqui, sem ligar e sem criar conta.</p>
+            <h1 id="shop-name">Barbearia Alvorada</h1>
+            <p class="hero__lead" id="shop-lead">Corte e barba de terça a sábado. Escolha o horário aqui, sem ligar e sem criar conta.</p>
             <div class="hero__actions">
               <a class="btn btn--sol" href="#/agendar">Agendar horário</a>
               <a class="btn hero__ghost" href="#servicos">Ver serviços e preços</a>
@@ -74,7 +75,7 @@ export function renderHome(app) {
       <section class="section wrap section--split" id="horario" aria-labelledby="horario-title">
         <div>
           <h2 id="horario-title">Horário de funcionamento</h2>
-          <p class="muted">Cada barbeiro tem o seu expediente; o agendamento só mostra os horários em que alguém está livre.</p>
+          <p class="muted" id="hours-note">Cada barbeiro tem o seu expediente; o agendamento só mostra os horários em que alguém está livre.</p>
         </div>
         <table class="hours" id="hours"><caption class="sr-only">Horário de funcionamento por dia da semana</caption><tbody></tbody></table>
       </section>
@@ -86,6 +87,10 @@ export function renderHome(app) {
 
 async function fill(app) {
   const { shop, services, barbers, workingHours } = await api.getShop();
+  // Pet shop (ou outra loja): nome, texto e palavras vêm dos dados
+  app.querySelector('#shop-name').textContent = shop.name;
+  if (shop.lead) app.querySelector('#shop-lead').textContent = shop.lead;
+  if (shop.petMode) app.querySelector('#hours-note').textContent = 'Cada profissional tem o seu expediente; o agendamento só mostra os horários em que alguém está livre.';
 
   app.querySelector('#prices').innerHTML = services
     .map(
@@ -95,7 +100,7 @@ async function fill(app) {
           <h3>${esc(s.name)}</h3>
           <p class="muted">${esc(s.description)}</p>
         </div>
-        <p class="price__meta"><span>${formatDuration(s.durationMin)}</span><strong>${formatMoney(s.priceCents)}</strong></p>
+        <p class="price__meta"><span>${formatDuration(s.durationMin)}</span><strong>${esc(priceText(s))}</strong></p>
       </li>`,
     )
     .join('');

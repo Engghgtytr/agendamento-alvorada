@@ -7,6 +7,7 @@ import { formatPhone } from '../utils/customer.js';
 import { esc, formatDuration, formatMoney } from '../utils/format.js';
 import { addDays, dateKey, formatDay, fromMinutes, timeLabel, toMinutes, weekdayOf } from '../utils/time.js';
 import { whatsappLink } from '../utils/whatsapp.js';
+import { labels, reminderMessage, SIZES } from '../utils/labels.js';
 
 // Painel do dono. Rotas: #/admin (agenda), #/admin/servicos e #/admin/expediente.
 // Esconder telas aqui é só conforto: quem protege os dados é o RLS do banco.
@@ -249,7 +250,7 @@ async function viewAgenda(ctx) {
   const ranges = workingHours.filter((w) => w.weekday === weekday);
   const tl = ctx.main.querySelector('#tl');
   if (!ranges.length) {
-    tl.innerHTML = '<p class="empty">A barbearia não abre neste dia.</p>';
+    tl.innerHTML = `<p class="empty">${shop.petMode ? 'O pet shop' : 'A barbearia'} não abre neste dia.</p>`;
     return;
   }
 
@@ -291,7 +292,7 @@ async function viewAgenda(ctx) {
       .map((a) => {
         const top = y(minuteOf(a.startsAt));
         const h = Math.max(26, y(minuteOf(a.endsAt)) - top - 2);
-        const who = a.name ?? 'Cliente de exemplo';
+        const who = (a.name ?? 'Cliente de exemplo') + (a.petName ? ` · ${a.petName}` : '') + (a.confirmedAt ? ' ✓' : '');
         return `
           <button class="tl-appt tl-appt--${a.status}${h < 50 ? ' tl-appt--short' : ''}" type="button" data-appt="${esc(a.id)}" style="top:${top}px;height:${h}px"
             aria-label="${esc(`${a.time}, ${who}, ${a.serviceName}, ${STATUS[a.status]}`)}">
@@ -360,15 +361,18 @@ function apptDialog(ctx, a) {
     <h2 id="d-title">${esc(a.time)} · ${esc(who)}</h2>
     <dl class="summary summary--plain">
       <div><dt>Serviço</dt><dd>${esc(a.serviceName)} · ${formatDuration(a.durationMin)}</dd></div>
-      <div><dt>Barbeiro</dt><dd>${esc(barber?.name ?? '')}</dd></div>
+      ${a.petName ? `<div><dt>Pet</dt><dd>${esc(a.petName)} · porte ${esc((SIZES[a.petSize] ?? '').toLowerCase())}${a.petBreed ? ` · ${esc(a.petBreed)}` : ''}</dd></div>` : ''}
+      <div><dt>${labels(ctx.data.shop).staff}</dt><dd>${esc(barber?.name ?? '')}</dd></div>
       <div><dt>Valor</dt><dd>${formatMoney(a.priceCents)}</dd></div>
       <div><dt>WhatsApp</dt><dd>${a.phone ? esc(formatPhone(a.phone)) : '—'}</dd></div>
-      <div><dt>Situação</dt><dd>${STATUS[a.status]}</dd></div>
+      <div><dt>Situação</dt><dd>${STATUS[a.status]}${a.confirmedAt ? ' · <strong>presença confirmada ✓</strong>' : ''}${a.remindedAt ? ` · lembrete enviado ${esc(new Date(a.remindedAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }))}` : ''}</dd></div>
     </dl>
     ${a.seed ? '<p class="note">Cliente de exemplo da demonstração, sem nome nem telefone.</p>' : ''}
     <p class="alert" id="d-error" role="alert" hidden></p>
     <div class="modal__actions modal__actions--wrap">
       ${phoneLink}
+      ${a.phone && a.status === 'booked' ? `<a class="btn btn--primary" data-remind href="${esc(whatsappLink(a.phone, reminderMessage({ shop: ctx.data.shop, appointment: a, date: a.date ?? dateKey(new Date(a.startsAt), ctx.data.shop.timezone) })))}" target="_blank" rel="noopener noreferrer">${icons.message}${a.remindedAt ? 'Lembrar de novo' : 'Enviar lembrete'}</a>` : ''}
+      ${a.phone && a.status === 'booked' && !a.confirmedAt ? '<button class="btn btn--outline" type="button" data-confirmed>Cliente confirmou</button>' : ''}
       ${a.status !== 'done' ? '<button class="btn btn--primary" type="button" data-status="done">Atendido</button>' : ''}
       ${a.status !== 'no_show' ? '<button class="btn btn--outline" type="button" data-status="no_show">Faltou</button>' : ''}
       ${a.status !== 'booked' ? '<button class="btn btn--outline" type="button" data-status="booked">Voltar para marcado</button>' : ''}
@@ -380,6 +384,25 @@ function apptDialog(ctx, a) {
 
   dialog.onclick = async (e) => {
     if (e.target.closest('[data-close]')) return dialog.close();
+    // Lembrete: o link abre o WhatsApp com a mensagem pronta; aqui só anotamos que foi enviado
+    if (e.target.closest('[data-remind]')) {
+      api.admin.markReminded(a.id).then(() => viewAgenda(ctx)).catch((err) => toast(err.message));
+      return;
+    }
+    const confirmedBtn = e.target.closest('[data-confirmed]');
+    if (confirmedBtn) {
+      confirmedBtn.disabled = true;
+      try {
+        await api.admin.setConfirmed(a.id);
+        dialog.close();
+        toast(`${who}: presença confirmada.`);
+        viewAgenda(ctx);
+      } catch (err) {
+        confirmedBtn.disabled = false;
+        toast(err.message);
+      }
+      return;
+    }
     const btn = e.target.closest('[data-status]');
     if (!btn || btn.disabled) return;
     const status = btn.dataset.status;

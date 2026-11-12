@@ -49,6 +49,7 @@ export function createSupabaseApi(url, key) {
         windowDays: s.window_days,
         cancelLimitMin: s.cancel_limit_min,
         maxActivePerPhone: s.max_active_per_phone,
+        petMode: Boolean(s.pet_mode),
       },
       services: servicesRes.data.map((x) => ({
         id: x.id,
@@ -56,6 +57,7 @@ export function createSupabaseApi(url, key) {
         description: x.description,
         durationMin: x.duration_min,
         priceCents: x.price_cents,
+        sizePrices: x.size_prices ?? null,
         active: x.active,
         position: x.position,
       })),
@@ -130,6 +132,11 @@ export function createSupabaseApi(url, key) {
           name: a.customer_name,
           phone: a.customer_phone,
           status: a.status,
+          petName: a.pet_name,
+          petSize: a.pet_size,
+          petBreed: a.pet_breed,
+          confirmedAt: a.confirmed_at,
+          remindedAt: a.reminded_at,
         })),
         timeOff: off.data.map((t) => ({ id: t.id, barberId: t.barber_id, startsAt: t.starts_at, endsAt: t.ends_at, reason: t.reason })),
       };
@@ -138,6 +145,18 @@ export function createSupabaseApi(url, key) {
     async setStatus(id, status) {
       // .select() devolve a linha alterada: se o RLS barrar, volta vazio em vez de erro.
       const res = await db.from('appointments').update({ status }).eq('id', id).select('id');
+      check(res);
+      if (!res.data.length) throw new Error('Você não tem permissão para mudar este horário.');
+    },
+
+    async markReminded(id) {
+      const res = await db.from('appointments').update({ reminded_at: new Date().toISOString() }).eq('id', id).select('id');
+      check(res);
+      if (!res.data.length) throw new Error('Você não tem permissão para mudar este horário.');
+    },
+
+    async setConfirmed(id) {
+      const res = await db.from('appointments').update({ confirmed_at: new Date().toISOString() }).eq('id', id).select('id');
       check(res);
       if (!res.data.length) throw new Error('Você não tem permissão para mudar este horário.');
     },
@@ -217,7 +236,7 @@ export function createSupabaseApi(url, key) {
       }));
     },
 
-    async book({ date, time, serviceId, barberId, name, phone, website = '' }) {
+    async book({ date, time, serviceId, barberId, name, phone, website = '', pet = null }) {
       if (website) return { code: randomCode() }; // robô: finge que deu certo e não envia nada
       const { data, error } = await db.rpc('book_appointment', {
         p_date: date,
@@ -226,6 +245,9 @@ export function createSupabaseApi(url, key) {
         p_barber_id: barberId === 'any' ? null : barberId,
         p_name: name,
         p_phone: phone,
+        p_pet_name: pet?.name ?? null,
+        p_pet_size: pet?.size ?? null,
+        p_pet_breed: pet?.breed || null,
       });
       if (error) fail(error);
       return { code: data };
@@ -241,6 +263,11 @@ export function createSupabaseApi(url, key) {
         barber: { id: b.barberId, name: b.barberName },
         shop,
       };
+    },
+
+    async confirm(code) {
+      const { error } = await db.rpc('confirm_booking', { p_code: code });
+      if (error) fail(error);
     },
 
     async cancel(code) {

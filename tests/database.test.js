@@ -57,6 +57,8 @@ beforeAll(async () => {
   await db.exec(sql('../supabase/tests/supabase-stub.sql'));
   await db.exec(sql('../supabase/migrations/001_agendamento.sql'));
   await db.exec(sql('../supabase/migrations/003_seed.sql'));
+  // 004 por cima: tudo que já funcionava continua igual com o pet e o lembrete instalados
+  await db.exec(sql('../supabase/migrations/004_pet_lembrete.sql'));
   await asOwner(`insert into auth.users (id, email) values ($1, 'dono@exemplo.com'), ($2, 'outra@exemplo.com')`, [DONO, OUTRA_CONTA]);
   await asOwner('insert into public.admins (user_id) values ($1)', [DONO]);
 }, 60000);

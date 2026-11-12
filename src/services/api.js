@@ -13,8 +13,11 @@ if (url && !isValidUrl(url)) {
 
 export const isDemo = !(isValidUrl(url) && key);
 
-const PUBLIC = ['getShop', 'getDays', 'getSlots', 'book', 'getBooking', 'cancel'];
-const ADMIN = ['getShop', 'getDay', 'setStatus', 'addTimeOff', 'removeTimeOff', 'saveService', 'saveHours'];
+const PUBLIC = ['getShop', 'getDays', 'getSlots', 'book', 'getBooking', 'confirm', 'cancel'];
+const ADMIN = ['getShop', 'getDay', 'setStatus', 'markReminded', 'setConfirmed', 'addTimeOff', 'removeTimeOff', 'saveService', 'saveHours'];
+
+// Demonstração do modo pet shop: abra o site com ?loja=pet
+const demoLoja = new URLSearchParams(globalThis.location?.search ?? '').get('loja') === 'pet' ? 'pet' : 'barbearia';
 const SESSION = ['current', 'signIn', 'signOut'];
 
 // Com Supabase, a biblioteca dele só é baixada quando a primeira função é chamada.
@@ -37,7 +40,7 @@ function lazySupabaseApi() {
 const DEMO_SESSION = 'alvorada:painel-demo';
 
 function demoApi() {
-  const api = createDemoApi();
+  const api = createDemoApi({ loja: demoLoja });
   api.session = {
     async current() {
       try {
