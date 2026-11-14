@@ -16,8 +16,9 @@ export const isDemo = !(isValidUrl(url) && key);
 const PUBLIC = ['getShop', 'getDays', 'getSlots', 'book', 'getBooking', 'confirm', 'cancel'];
 const ADMIN = ['getShop', 'getDay', 'setStatus', 'markReminded', 'setConfirmed', 'addTimeOff', 'removeTimeOff', 'saveService', 'saveHours'];
 
-// Demonstração do modo pet shop: abra o site com ?loja=pet
-const demoLoja = new URLSearchParams(globalThis.location?.search ?? '').get('loja') === 'pet' ? 'pet' : 'barbearia';
+// Demonstração do modo pet shop: abra o site com ?loja=pet, ou faça o build com VITE_LOJA=pet (site só do pet shop)
+const lojaPedida = new URLSearchParams(globalThis.location?.search ?? '').get('loja') ?? import.meta.env?.VITE_LOJA;
+export const demoLoja = lojaPedida === 'pet' ? 'pet' : 'barbearia';
 const SESSION = ['current', 'signIn', 'signOut'];
 
 // Com Supabase, a biblioteca dele só é baixada quando a primeira função é chamada.

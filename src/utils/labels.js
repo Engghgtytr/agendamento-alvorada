@@ -4,8 +4,8 @@ import { formatDay } from './time.js';
 
 export const labels = (shop) =>
   shop?.petMode
-    ? { staff: 'Profissional', staffPlural: 'profissionais', place: 'no pet shop', to: 'o pet shop' }
-    : { staff: 'Barbeiro', staffPlural: 'barbeiros', place: 'na barbearia', to: 'a barbearia' };
+    ? { staff: 'Profissional', staffPlural: 'profissionais', staffOne: 'o profissional', place: 'no pet shop', to: 'o pet shop', of: 'do pet shop', fictional: 'fictício' }
+    : { staff: 'Barbeiro', staffPlural: 'barbeiros', staffOne: 'o barbeiro', place: 'na barbearia', to: 'a barbearia', of: 'da barbearia', fictional: 'fictícia' };
 
 export const SIZES = { p: 'Pequeno', m: 'Médio', g: 'Grande' };
 

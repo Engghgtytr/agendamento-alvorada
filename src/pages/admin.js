@@ -1,7 +1,7 @@
 import '../styles/admin.css';
 import { icons, logo } from '../components/layout.js';
 import { toast } from '../components/toast.js';
-import { api, isDemo } from '../services/api.js';
+import { api, demoLoja, isDemo } from '../services/api.js';
 import { slugify, validateDayRanges, validateService, validateTimeOff } from '../utils/admin-rules.js';
 import { formatPhone } from '../utils/customer.js';
 import { esc, formatDuration, formatMoney } from '../utils/format.js';
@@ -67,12 +67,13 @@ function setBusy(button, busy, label) {
 
 function showLogin(ctx) {
   if (isDemo) {
+    const demoLabels = labels({ petMode: demoLoja === 'pet' });
     ctx.app.innerHTML = `
       <div class="admin admin--center"><main class="login" id="conteudo">
         ${logo}
-        <h1>Painel da barbearia</h1>
+        <h1>Painel ${demoLabels.of}</h1>
         <p>É aqui que o dono vê a agenda do dia, marca quem foi atendido, bloqueia horários e muda serviços e expediente.</p>
-        <p>Como a barbearia é fictícia, dá para testar sem senha. <strong>As mudanças ficam só no seu navegador.</strong></p>
+        <p>Como ${demoLabels.to} é ${demoLabels.fictional}, dá para testar sem senha. <strong>As mudanças ficam só no seu navegador.</strong></p>
         <button class="btn btn--primary" type="button" id="demo">Entrar na demonstração</button>
         <a class="link" href="#/">Voltar para o site</a>
       </main></div>`;
@@ -83,7 +84,7 @@ function showLogin(ctx) {
   ctx.app.innerHTML = `
     <div class="admin admin--center"><main class="login" id="conteudo">
       ${logo}
-      <h1>Painel da barbearia</h1>
+      <h1>Painel do dono</h1>
       <form class="form" id="login" novalidate>
         <div class="field">
           <label for="email">E-mail</label>
@@ -133,7 +134,7 @@ function showNoAccess(ctx, user) {
     <div class="admin admin--center"><main class="login" id="conteudo">
       ${logo}
       <h1>Sem acesso ao painel</h1>
-      <p>A conta ${esc(user?.email ?? '')} entrou, mas não está na lista de quem administra a barbearia.</p>
+      <p>A conta ${esc(user?.email ?? '')} entrou, mas não está na lista de quem administra a loja.</p>
       <button class="btn btn--outline" type="button" id="logout">Sair</button>
     </main></div>`;
   ctx.app.querySelector('#logout').addEventListener('click', async () => {
@@ -435,7 +436,7 @@ function blockDialog(ctx, date) {
     <p class="muted">Ninguém consegue marcar nesse intervalo. Quem já marcou continua marcado: avise a pessoa.</p>
     <form class="form" id="block-form" novalidate>
       <div class="field">
-        <label for="b-barber">Barbeiro</label>
+        <label for="b-barber">${labels(ctx.data.shop).staff}</label>
         <select id="b-barber" aria-describedby="b-barber-error">
           ${barbers.map((b) => `<option value="${esc(b.id)}">${esc(b.name)}</option>`).join('')}
         </select>
@@ -658,7 +659,7 @@ function viewHours(ctx) {
 
   ctx.main.innerHTML = `
     <h1>Expediente</h1>
-    <p class="muted admin-lead">Deixe o dia em branco quando o barbeiro não atende. O 2º turno é para quem tem intervalo de almoço. Horários já marcados não mudam.</p>
+    <p class="muted admin-lead">Deixe o dia em branco quando ${labels(ctx.data.shop).staffOne} não atende. O 2º turno é para quem tem intervalo de almoço. Horários já marcados não mudam.</p>
     ${barbers
       .map(
         (b) => `

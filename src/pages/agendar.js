@@ -76,7 +76,7 @@ export function renderAgendar(app) {
 
     const items = [];
     if (state.step > 1 && service()) items.push([1, 'Serviço', service().name]);
-    if (state.step > 2) items.push([2, 'Barbeiro', barberLabel()]);
+    if (state.step > 2) items.push([2, labels(data.shop).staff, barberLabel()]);
     if (state.step > 3) items.push([3, 'Dia e hora', `${weekdayShort(state.date)} ${dayOfMonth(state.date)}/${state.date.slice(5, 7)}, ${state.time}`]);
     el.choices.innerHTML = items
       .map(

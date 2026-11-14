@@ -84,17 +84,21 @@ function router() {
 
 // O site nasceu como "Barbearia Alvorada". Para outra loja (ex.: pet shop em ?loja=pet ou um
 // cliente no Supabase), troca o nome no topo, no rodapé e no título da aba.
+// Roda a cada mudança na página (as páginas desenham depois de carregar); só mexe no que está
+// diferente, por isso não entra em loop.
+const shopReady = api.getShop().then(({ shop }) => shop).catch(() => null);
 function brand() {
-  api.getShop().then(({ shop }) => {
-    if (shop.name === 'Barbearia Alvorada') return;
-    for (const el of document.querySelectorAll('.logo span')) el.textContent = shop.name;
+  shopReady.then((shop) => {
+    if (!shop || shop.name === 'Barbearia Alvorada') return;
+    const set = (el, text) => { if (el && el.textContent !== text) el.textContent = text; };
+    for (const el of document.querySelectorAll('.logo span')) set(el, shop.name);
     for (const el of document.querySelectorAll('.logo')) el.setAttribute('aria-label', `${shop.name}, página inicial`);
-    const foot = document.querySelector('.site-footer strong');
-    if (foot) foot.textContent = `${shop.petMode ? 'O' : 'A'} ${shop.name} é fictíci${shop.petMode ? 'o' : 'a'}.`;
-    document.title = document.title.replace('Barbearia Alvorada', shop.name);
-  }).catch(() => {});
+    set(document.querySelector('.site-footer strong'), `${shop.petMode ? 'O' : 'A'} ${shop.name} é fictíci${shop.petMode ? 'o' : 'a'}.`);
+    if (document.title.includes('Barbearia Alvorada')) document.title = document.title.replace('Barbearia Alvorada', shop.name);
+  });
 }
 
-window.addEventListener('hashchange', () => { router(); brand(); });
+window.addEventListener('hashchange', router);
+new MutationObserver(brand).observe(app, { childList: true, subtree: true });
 router();
 brand();
