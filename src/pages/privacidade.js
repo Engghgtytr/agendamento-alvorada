@@ -1,6 +1,6 @@
 import { siteFooter, siteHeader } from '../components/layout.js';
 import { toast } from '../components/toast.js';
-import { api, isDemo } from '../services/api.js';
+import { isDemo, loadShop } from '../services/api.js';
 import { esc } from '../utils/format.js';
 import { labels } from '../utils/labels.js';
 
@@ -13,7 +13,8 @@ export function renderPrivacidade(app) {
 }
 
 async function draw(app) {
-  const shop = (await api.getShop().catch(() => null))?.shop ?? { name: 'Barbearia Alvorada' };
+  const shop = (await loadShop()) ?? { name: 'Barbearia Alvorada' };
+  if (!location.hash.startsWith('#/privacidade')) return; // a pessoa já foi para outra página
   const l = labels(shop);
   const pet = Boolean(shop.petMode);
   const A = l.to.charAt(0).toUpperCase() + l.to.slice(1);
@@ -50,7 +51,9 @@ async function draw(app) {
       }
 
       <h2>Cookies</h2>
-      <p>O site não usa cookies de rastreamento nem ferramentas de propaganda, por isso não há aviso de cookies.</p>
+      <p>Cookies são pequenos arquivos que um site pede para o navegador guardar e devolver nas próximas visitas, para lembrar quem você é. Os de <strong>terceiros</strong> são os usados por propaganda para seguir você de site em site.</p>
+      <p><strong>Este site não usa cookies</strong>, nem próprios nem de terceiros, e não tem propaganda, Google Analytics ou pixel de rede social. Por isso não aparece aviso de cookies.</p>
+      <p>O que ele usa é o <strong>armazenamento local do navegador</strong>, só para o funcionamento: lembrar os passos do agendamento enquanto você marca${isDemo ? ' e guardar os horários de teste' : ' e manter o dono conectado no painel'}. Isso não sai do seu aparelho para ninguém além ${l.of}, e você apaga quando quiser limpando os dados do site no navegador.</p>
     </main>
     ${siteFooter}`;
 

@@ -70,3 +70,9 @@ function demoApi() {
 }
 
 export const api = isDemo ? demoApi() : lazySupabaseApi();
+
+// Dados da loja, pedidos uma vez e reaproveitados (nome no topo, privacidade).
+// Se falhar (sem sinal), esquece a falha para tentar de novo na próxima chamada.
+let shopPromise = null;
+export const loadShop = () =>
+  (shopPromise ??= api.getShop().then(({ shop }) => shop).catch(() => { shopPromise = null; return null; }));

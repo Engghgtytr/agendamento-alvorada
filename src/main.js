@@ -1,4 +1,4 @@
-import { api } from './services/api.js';
+import { loadShop } from './services/api.js';
 import './styles/base.css';
 import './styles/home.css';
 import './styles/agendar.css';
@@ -86,15 +86,15 @@ function router() {
 // cliente no Supabase), troca o nome no topo, no rodapé e no título da aba.
 // Roda a cada mudança na página (as páginas desenham depois de carregar); só mexe no que está
 // diferente, por isso não entra em loop.
-const shopReady = api.getShop().then(({ shop }) => shop).catch(() => null);
 function brand() {
-  shopReady.then((shop) => {
+  loadShop().then((shop) => {
     if (!shop || shop.name === 'Barbearia Alvorada') return;
     const set = (el, text) => { if (el && el.textContent !== text) el.textContent = text; };
     for (const el of document.querySelectorAll('.logo span')) set(el, shop.name);
     for (const el of document.querySelectorAll('.logo')) el.setAttribute('aria-label', `${shop.name}, página inicial`);
     set(document.querySelector('.site-footer strong'), `${shop.petMode ? 'O' : 'A'} ${shop.name} é fictíci${shop.petMode ? 'o' : 'a'}.`);
     if (document.title.includes('Barbearia Alvorada')) document.title = document.title.replace('Barbearia Alvorada', shop.name);
+    if (shop.petMode && /barb/i.test(description.content)) description.content = `Agende no ${shop.name} sem criar conta.`;
   });
 }
 
